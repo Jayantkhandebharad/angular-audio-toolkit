@@ -1,4 +1,5 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { time } from 'console';
 
 @Component({
   selector: 'app-voice-recorder',
@@ -27,28 +28,37 @@ export class VoiceRecorderComponent implements OnInit {
   }
 
   startRecording() {
-    navigator.mediaDevices.getUserMedia({ audio: true })
+    navigator.mediaDevices.getUserMedia({ audio: true})
       .then(stream => {
         this.mediaRecorder = new MediaRecorder(stream);
-
+        console.log('MediaRecorder.mimeType: ', this.mediaRecorder.mimeType);
         this.mediaRecorder.ondataavailable = (e: any) => {
           this.chunks.push(e.data);
+          console.log("chunk size: ", this.chunks.length);
+          console.log("e.data: ", e.data);
+          console.log("e", e);
+          
+          const blob = new Blob(this.chunks, { type: this.mediaRecorder.mimeType });
+          const audioURL = window.URL.createObjectURL(blob);
+          this.audioPlayer.nativeElement.src = audioURL;
         };
 
         this.mediaRecorder.onstop = () => {
-          const blob = new Blob(this.chunks, { type: 'audio/mp3' });
+          console.log('Stopped recording');
           this.chunks = [];
-          const audioURL = window.URL.createObjectURL(blob);
-          this.audioPlayer.nativeElement.src = audioURL;
+          
         };
 
         this.mediaRecorder.onpause = () => {
-          const blob = new Blob(this.chunks, { type: 'audio/mp3' });
-          const audioURL = window.URL.createObjectURL(blob);
-          this.audioPlayer.nativeElement.src = audioURL;
+          console.log('Paused recording');
         };
 
-        this.mediaRecorder.start();
+        this.mediaRecorder.onerror= (e) => {
+          console.error(' custom Error: ', e);
+        };
+
+        //trying adding timeslice (it will call ondataavailable every 5 seconds automatically)
+        this.mediaRecorder.start(5000);
         this.isRecording = true;
       })
       .catch(error => {
